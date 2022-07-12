@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_fortune_wheel/flutter_fortune_wheel.dart';
 
@@ -27,86 +28,125 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  int totalNumber = Colors.primaries.length - 1;
+//   int totalNumber = Colors.primaries.length - 1;
+  int totalNumber = 2;
   int pickedNumber = 0;
   int prizeNumber = -1;
 
   StreamController<int> prizeController = StreamController<int>();
+  ConfettiController confettiController =
+      ConfettiController(duration: Duration(seconds: 10));
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.lightBlue,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      body: Stack(
         children: [
-          Text(
-            "HK Lottery Ticket",
-            style: TextStyle(
-              fontSize: 42,
-              color: Colors.yellow,
-              fontWeight: FontWeight.bold,
-              shadows: [
-                Shadow(
-                  color: Colors.black54,
-                  blurRadius: 10,
-                  offset: Offset(1.5, 1.5),
-                )
-              ],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 24),
-          numberPicker(),
-          SizedBox(height: 24),
-
-          /// Expanded widget will occupy all the available space in Column/Row
-          Expanded(
-            child: FortuneWheel(
-              items: buildFortuneItems(pickedNumber, totalNumber),
-              onFling: () {
-                prizeNumber = Random().nextInt(totalNumber);
-                prizeController.add(prizeNumber);
-              },
-              indicators: [
-                FortuneIndicator(
-                  alignment: Alignment.topCenter,
-                  child: TriangleIndicator(color: Colors.white),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                "HK Lottery Ticket",
+                style: TextStyle(
+                  fontSize: 42,
+                  color: Colors.yellow,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black54,
+                      blurRadius: 10,
+                      offset: Offset(1.5, 1.5),
+                    )
+                  ],
                 ),
-              ],
-              selected: prizeController.stream,
-              onAnimationEnd: () {
-                /// Make sure the wheel is spinned by user interaction before comparing the prize number
-                if (prizeNumber < 0) return;
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24),
+              numberPicker(),
+              SizedBox(height: 24),
 
-                /// Compare the prize number with the picked number
-                if ((prizeNumber + 1) == pickedNumber) {
-                  /// Congrats! You won!
-                  //  Text("Congratulations, you won!");
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Column(
-                        children: [
-                          Text("Congratulations, you win!"),
-                        ],
-                      ),
+              /// Expanded widget will occupy all the available space in Column/Row
+              Expanded(
+                child: FortuneWheel(
+                  items: buildFortuneItems(pickedNumber, totalNumber),
+                  onFling: () {
+                    prizeNumber = Random().nextInt(totalNumber);
+                    prizeController.add(prizeNumber);
+                  },
+                  indicators: [
+                    FortuneIndicator(
+                      alignment: Alignment.topCenter,
+                      child: TriangleIndicator(color: Colors.white),
                     ),
-                  );
-                } else {
-                  /// Sorry, you lost!
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Column(
-                        children: [
-                          Text("You lose. Better luck next time!"),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-              },
+                  ],
+                  selected: prizeController.stream,
+                  onAnimationEnd: () {
+                    /// Make sure the wheel is spinned by user interaction before comparing the prize number
+                    if (prizeNumber < 0) return;
+
+                    /// Compare the prize number with the picked number
+                    if ((prizeNumber + 1) == pickedNumber) {
+                      /// Congrats! You won!
+                      //  Text("Congratulations, you won!");
+                      confettiController.play();
+
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Column(
+                            children: [
+                              Text("Congratulations, you win!"),
+                            ],
+                          ),
+                        ),
+                      );
+                    } else {
+                      /// Sorry, you lost!
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Column(
+                            children: [
+                              Text("You lose. Better luck next time!"),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          Align(
+            alignment: Alignment.topRight,
+            child: ConfettiWidget(
+              confettiController: confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              emissionFrequency: 0.1,
+              shouldLoop: false,
+              colors: Colors.primaries,
+            ),
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              emissionFrequency: 0.1,
+              shouldLoop: false,
+              colors: Colors.primaries,
+            ),
+          ),
+          Align(
+            alignment: Alignment.topLeft,
+            child: ConfettiWidget(
+              confettiController: confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              emissionFrequency: 0.1,
+              shouldLoop: false,
+              colors: Colors.primaries,
             ),
           ),
         ],
