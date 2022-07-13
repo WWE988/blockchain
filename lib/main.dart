@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_fortune_wheel/flutter_fortune_wheel.dart';
 
 void main() => runApp(MyApp());
@@ -36,6 +37,24 @@ class _HomeState extends State<Home> {
   StreamController<int> prizeController = StreamController<int>();
   ConfettiController confettiController =
       ConfettiController(duration: Duration(seconds: 10));
+
+  TextEditingController totalNumberController = TextEditingController();
+
+  bool isPickerExpanded = false;
+
+  @override
+  void initState() {
+    totalNumberController.text = totalNumber.toString();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    prizeController.close();
+    confettiController.dispose();
+    totalNumberController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +90,23 @@ class _HomeState extends State<Home> {
                 child: FortuneWheel(
                   items: buildFortuneItems(pickedNumber, totalNumber),
                   onFling: () {
-                    prizeNumber = Random().nextInt(totalNumber);
-                    prizeController.add(prizeNumber);
+                    if (pickedNumber == 0) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text("Pick a number first"),
+                          actions: [
+                            TextButton(
+                              child: Text("OK"),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      prizeNumber = Random().nextInt(totalNumber);
+                      prizeController.add(prizeNumber);
+                    }
                   },
                   indicators: [
                     FortuneIndicator(
@@ -154,31 +188,62 @@ class _HomeState extends State<Home> {
     ); // This trailing comma makes auto-formatting nicer for build methods.
   }
 
-  Container numberPicker() {
-    return Container(
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.all(Radius.circular(16)),
-          boxShadow: [
-            BoxShadow(
-                offset: Offset(2, 2), blurRadius: 6, color: Colors.black54)
-          ]),
-      padding: EdgeInsets.all(24),
-      alignment: Alignment.center,
-      child: Column(
-        children: [
-          Text('Pick a number between 1 and $totalNumber:',
-              style: TextStyle(fontSize: 18, color: Colors.black)),
-          SizedBox(height: 16),
-          numberGrids(),
-        ],
-      ),
+  Widget numberPicker() {
+    return ExpansionPanelList(
+      /// Since we have only one panel, we can ignore the panelIndex provided here.
+      /// Then update the expand flag variable when user tapped the "expand" button.
+      expansionCallback: (panelIndex, isExpanded) =>
+          setState(() => isPickerExpanded = !isExpanded),
+
+      children: [
+        ExpansionPanel(
+          isExpanded: isPickerExpanded,
+          headerBuilder: (context, isExpanded) => Row(
+            children: [
+              SizedBox(width: 16),
+              Text('Pick a number between 1 and ',
+                  style: TextStyle(fontSize: 18, color: Colors.black)),
+              SizedBox(
+                width: 32,
+                child: TextFormField(
+                  controller: totalNumberController,
+                  onChanged: (value) {
+                    setState(() {
+                      if (int.tryParse(value) != null) {
+                        if (int.parse(value) > 50) {
+                          totalNumber = 50;
+                        } else if (int.parse(value) > 1) {
+                          totalNumber = int.parse(value);
+                        }
+                      }
+                      pickedNumber = 0;
+                    });
+                  },
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(border: UnderlineInputBorder()),
+                  inputFormatters: [
+                    // only accept integers
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))
+                  ],
+                ),
+              ),
+              Text('(max: 50)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+          body: Padding(
+            padding: const EdgeInsets.only(left: 8, right: 8, bottom: 24),
+            child: numberGrids(),
+          ),
+        )
+      ],
     );
   }
 
   Widget numberGrids() {
     return GridView.builder(
-      padding: EdgeInsets.all(2),
+      padding: EdgeInsets.zero,
       physics: NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -188,28 +253,24 @@ class _HomeState extends State<Home> {
       ),
       itemCount: totalNumber,
       itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.lightBlue, width: 2),
-            shape: BoxShape.circle,
+        return Material(
+          shape: CircleBorder(
+            side: BorderSide(color: Colors.lightBlue, width: 2),
           ),
-          child: Material(
-            borderRadius: BorderRadius.circular(90),
-            color: pickedNumber - 1 == index
-                ? Colors.grey[300]
-                : Colors.transparent,
-            child: InkWell(
-              onTap: () => setState(() => pickedNumber = index + 1),
-              borderRadius: BorderRadius.circular(90),
-              onHover: (hovered) {},
-              child: Center(
-                child: Text(
-                  (index + 1).toString(),
-                  style: TextStyle(
-                    fontSize: 32,
-                    color: Colors.lightBlue,
-                    fontWeight: FontWeight.bold,
-                  ),
+          color:
+              pickedNumber - 1 == index ? Colors.grey[300] : Colors.transparent,
+          child: InkWell(
+            onTap: () => setState(() => pickedNumber = index + 1),
+            customBorder: CircleBorder(),
+            splashColor: Colors.grey[100],
+            onHover: (hovered) {},
+            child: Center(
+              child: Text(
+                (index + 1).toString(),
+                style: TextStyle(
+                  fontSize: 32,
+                  color: Colors.lightBlue,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
